@@ -1,0 +1,171 @@
+local Players = game:Service("Players")
+local RunService = game:Service("RunService")
+local UserInputService = game:Service("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MM2ESPGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 160)
+MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true 
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+Title.Text = "  ESP MENU"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 8)
+TitleCorner.Parent = Title
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 180, 0, 35)
+ToggleBtn.Position = UDim2.new(0.5, -90, 0, 45)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleBtn.Text = "ESP: OFF"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 14
+ToggleBtn.Parent = MainFrame
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 6)
+BtnCorner.Parent = ToggleBtn
+
+local TransparencyInput = Instance.new("TextBox")
+TransparencyInput.Size = UDim2.new(0, 180, 0, 35)
+TransparencyInput.Position = UDim2.new(0.5, -90, 0, 95)
+TransparencyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+TransparencyInput.Text = "0.5" 
+TransparencyInput.PlaceholderText = "Transparency (0-1)"
+TransparencyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+TransparencyInput.Font = Enum.Font.Gotham
+TransparencyInput.TextSize = 13
+TransparencyInput.Parent = MainFrame
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 6)
+InputCorner.Parent = TransparencyInput
+
+local espEnabled = false
+local currentTransparency = 0.5
+local MAX_DISTANCE = 2000
+
+local function getHighlightColor(player)
+	local backpack = player:FindFirstChild("Backpack")
+	local character = player.Character
+	
+	local function hasItem(name)
+		local inBackpack = backpack and backpack:FindFirstChild(name)
+		local inCharacter = character and character:FindFirstChild(name)
+		return inBackpack or inCharacter
+	end
+
+	if hasItem("Gun") then
+		return Color3.fromRGB(0, 150, 255) 
+	elseif hasItem("Knife") then
+		return Color3.fromRGB(255, 50, 50) 
+	else
+		return Color3.fromRGB(50, 255, 50) 
+	end
+end
+
+local function clearESP(character)
+	local oldHighlight = character:FindFirstChild("ESPHighlight")
+	if oldHighlight then
+		oldHighlight:Destroy()
+	end
+end
+
+local function clearAllESP()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character then
+			clearESP(player.Character)
+		end
+	end
+end
+
+RunService.RenderStepped:Connect(function()
+	if not espEnabled then return end
+	
+	local localCharacter = LocalPlayer.Character
+	if not localCharacter or not localCharacter:FindFirstChild("HumanoidRootPart") then return end
+	local localHRP = localCharacter.HumanoidRootPart
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local char = player.Character
+			local hrp = char.HumanoidRootPart
+			
+			local distance = (localHRP.Position - hrp.Position).Magnitude
+			
+			if distance <= MAX_DISTANCE then
+				local highlight = char:FindFirstChild("ESPHighlight")
+				if not highlight then
+					highlight = Instance.new("Highlight")
+					highlight.Name = "ESPHighlight"
+					highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop 
+					highlight.Parent = char
+				end
+				
+				highlight.FillColor = getHighlightColor(player)
+				highlight.OutlineColor = Color3.fromRGB(255, 255, 255) 
+				highlight.FillTransparency = currentTransparency
+				highlight.OutlineTransparency = currentTransparency
+			else
+				clearESP(char)
+			end
+		end
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	if player.Character then clearESP(player.Character) end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	if espEnabled then
+		ToggleBtn.Text = "ESP: ON"
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+	else
+		ToggleBtn.Text = "ESP: OFF"
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		clearAllESP() 
+	end
+end)
+
+TransparencyInput.FocusLost:Connect(function(enterPressed)
+	local num = tonumber(TransparencyInput.Text)
+	if num then
+		currentTransparency = math.clamp(num, 0, 1)
+		TransparencyInput.Text = tostring(currentTransparency)
+	else
+		TransparencyInput.Text = tostring(currentTransparency)
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.K then
+		MainFrame.Visible = not MainFrame.Visible
+	end
+end)
