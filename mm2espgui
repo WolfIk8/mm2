@@ -1,26 +1,31 @@
-local Players = game:Service("Players")
-local RunService = game:Service("RunService")
-local UserInputService = game:Service("UserInputService")
-local CoreGui = game:Service("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MM2ESPGUI"
 ScreenGui.ResetOnSpawn = false
 
-if gethui then
-	ScreenGui.Parent = gethui()
-elseif syn and syn.protect_gui then
-	syn.protect_gui(ScreenGui)
-	ScreenGui.Parent = CoreGui
-else
-	ScreenGui.Parent = CoreGui
+local success, err = pcall(function()
+	if gethui then
+		ScreenGui.Parent = gethui()
+	elseif cloneref then
+		ScreenGui.Parent = cloneref(CoreGui)
+	else
+		ScreenGui.Parent = CoreGui
+	end
+end)
+
+if not success or not ScreenGui.Parent then
+	ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 220, 0, 160)
-MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
