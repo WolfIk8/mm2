@@ -1,0 +1,157 @@
+if game:GetService("CoreGui"):FindFirstChild("MM2AimbotGUI8922") then
+    game:GetService("CoreGui").MM2AimbotGUI8922:Destroy()
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+local localPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+local SCREEN_GUI = Instance.new("ScreenGui")
+SCREEN_GUI.Name = "MM2AimbotGUI8922"
+SCREEN_GUI.ResetOnSpawn = false
+SCREEN_GUI.Parent = CoreGui 
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 220, 0, 110)
+mainFrame.Position = UDim2.new(0.5, -110, 0.4, -55)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true 
+mainFrame.Parent = SCREEN_GUI
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = mainFrame
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(60, 60, 70)
+uiStroke.Thickness = 1.5
+uiStroke.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 35)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "   ⚡ KNIFE CAMLOCK"
+titleLabel.TextColor3 = Color3.fromRGB(230, 230, 235)
+titleLabel.TextSize = 13
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = mainFrame
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0.9, 0, 0, 45)
+toggleButton.Position = UDim2.new(0.05, 0, 0.45, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(235, 60, 60)
+toggleButton.Text = "LOCK: OFF"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 13
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.AutoButtonColor = false
+toggleButton.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = toggleButton
+
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	local targetPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	TweenService:Create(mainFrame, TweenInfo.new(0.08, Enum.EasingStyle.OutQuad), {Position = targetPos}):Play()
+end
+
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+local isLocked = false
+local camLockConnection = nil
+
+local function getTargetPlayer()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= localPlayer then
+			local backpack = player:FindFirstChild("Backpack")
+			local char = player.Character
+			
+			local hasKnife = (backpack and backpack:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife"))
+			
+			if hasKnife and char and char:FindFirstChild("HumanoidRootPart") then
+				local humanoid = char:FindFirstChildOfClass("Humanoid")
+				if humanoid and humanoid.Health > 0 then
+					return char.HumanoidRootPart
+				end
+			end
+		end
+	end
+	return nil
+end
+
+local function enableCamLock()
+	camLockConnection = RunService.RenderStepped:Connect(function()
+		camera = workspace.CurrentCamera
+		
+		local target = getTargetPlayer()
+		if target then
+			camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+		end
+	end)
+end
+
+local function disableCamLock()
+	if camLockConnection then
+		camLockConnection:Disconnect()
+		camLockConnection = nil
+	end
+end
+
+toggleButton.MouseButton1Click:Connect(function()
+	isLocked = not isLocked
+	
+	local targetColor = isLocked and Color3.fromRGB(45, 175, 85) or Color3.fromRGB(235, 60, 60)
+	local targetText = isLocked and "LOCK: ON" or "LOCK: OFF"
+	
+	if isLocked then
+		enableCamLock()
+	else
+		disableCamLock()
+	end
+	
+	toggleButton.Text = targetText
+	TweenService:Create(toggleButton, TweenInfo.new(0.15), {BackgroundColor3 = targetColor}):Play()
+end)
+
+toggleButton.MouseEnter:Connect(function()
+	TweenService:Create(toggleButton, TweenInfo.new(0.1), {BackgroundTransparency = 0.15}):Play()
+end)
+
+toggleButton.MouseLeave:Connect(function()
+	TweenService:Create(toggleButton, TweenInfo.new(0.1), {BackgroundTransparency = 0}):Play()
+end)
